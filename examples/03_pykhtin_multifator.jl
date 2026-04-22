@@ -90,17 +90,28 @@ end
 # -----------------------------------------------------------------------------
 # Sensibilidade ao ρ_inter na carteira concentrada
 # -----------------------------------------------------------------------------
-println("\nSensibilidade ao ρ_inter (carteira concentrada 70/20/10):")
+println("\nSensibilidade ao ρ_inter (carteira concentrada 70/20/10, common random numbers):")
 port_conc = build_sector_portfolio([0.70, 0.20, 0.10]; pd = pd, lgd = lgd)
-rho_inters = [0.00, 0.05, 0.08, 0.12, 0.18]
+rho_inters = [0.00, 0.03, 0.05, 0.08, 0.12, 0.18, 0.25]
 
 rows_inter = DataFrame(rho_inter = Float64[], mc_capital_pct = Float64[],
                         delta_pct = Float64[])
 
+# Common random numbers: pré-gera Z (fatores sistêmicos) e U (choques
+# idiossincráticos) uma vez e reutiliza em todos os ρ_inter. Isola o efeito
+# da correlação inter-setor, eliminando o ruído amostral entre pontos.
+Random.seed!(99)
+n_sim_inter = 80_000
+n_per_inter = 500
+K = 3
+Z_shared = randn(K, n_sim_inter)
+U_shared = rand(K, n_per_inter, n_sim_inter)
+
 for ρi in rho_inters
     mc = multifactor_mc_capital(port_conc; rho_intra = rho_intra,
                                  rho_inter = ρi, alpha = alpha,
-                                 n_sim = n_sim, n_per_sector = n_per)
+                                 n_sim = n_sim_inter, n_per_sector = n_per_inter,
+                                 Z_shared = Z_shared, U_shared = U_shared)
     delta = 100 * (mc.capital / k_asrf - 1)
     push!(rows_inter, (ρi, 100 * mc.capital, delta))
     @printf("  ρ_inter = %.2f  →  capital MC = %.3f%%  (vs ASRF %+.1f%%)\n",
@@ -114,7 +125,6 @@ plt_conc = bar(
     results.name, results.mc_capital_pct,
     xlabel = "Cenário de concentração setorial",
     ylabel = "Capital (% do EAD)",
-    title  = "Capital multi-fator (MC) vs ASRF por nível de concentração",
     label  = "Multi-fator MC",
     size = (900, 520),
     fillcolor = :orange,
@@ -131,7 +141,6 @@ plt_inter = plot(
     rho_inters, rows_inter.delta_pct,
     xlabel = "ρ inter-setor",
     ylabel = "Delta multi-fator MC vs ASRF (+%)",
-    title  = "Carteira 70/20/10 — sensibilidade ao ρ inter-setor",
     linewidth = 2, marker = :circle,
     legend = false,
     size = (900, 500),

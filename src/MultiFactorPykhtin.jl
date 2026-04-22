@@ -64,7 +64,9 @@ function multifactor_mc_capital(portfolio::SectorPortfolio;
                                  rho_intra::Real, rho_inter::Real,
                                  alpha::Real=0.999, n_sim::Integer=50_000,
                                  n_per_sector::Integer=500,
-                                 rng::AbstractRNG=default_rng())
+                                 rng::AbstractRNG=default_rng(),
+                                 Z_shared::Union{Nothing,AbstractMatrix}=nothing,
+                                 U_shared::Union{Nothing,AbstractArray}=nothing)
     K = length(portfolio.weights)
     threshold = quantile(STANDARD_NORMAL, portfolio.pd)
     sqrt_rho = sqrt(rho_intra)
@@ -77,21 +79,28 @@ function multifactor_mc_capital(portfolio::SectorPortfolio;
     end
     L = cholesky(Symmetric(Σ)).L
 
+    # Common random numbers support: caller may pre-generate Z (K × n_sim)
+    # and U (K × n_per_sector × n_sim) to reuse across different rho_inter
+    # values, isolating the effect of the parameter.
+    if Z_shared === nothing
+        Z_shared = randn(rng, K, n_sim)
+    end
+    if U_shared === nothing
+        U_shared = rand(rng, K, n_per_sector, n_sim)
+    end
+
     losses = zeros(Float64, n_sim)
 
     @inbounds for s in 1:n_sim
-        # sample correlated sector factors
-        Z  = randn(rng, K)
-        Y  = L * Z
+        # correlated sector factors
+        Y = L * view(Z_shared, :, s)
         total_loss = 0.0
         for k in 1:K
-            # conditional default probability in sector k given Y_k
             cond_pd = cdf(STANDARD_NORMAL,
                           (threshold - sqrt_rho * Y[k]) / sqrt_1mrho)
-            # simulate binomial defaults among n_per_sector obligors
             defaults = 0
-            for _ in 1:n_per_sector
-                if rand(rng) < cond_pd
+            for i in 1:n_per_sector
+                if U_shared[k, i, s] < cond_pd
                     defaults += 1
                 end
             end

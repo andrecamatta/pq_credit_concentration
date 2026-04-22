@@ -29,8 +29,8 @@ xs = 0.001:0.001:0.15
 
 plt_density = plot(
     xlabel = "Taxa de perda L",
-    ylabel = "Densidade",
-    title  = "Distribuição-limite de Vasicek  (PD = 1%)",
+    ylabel = "Densidade (escala log)",
+    yscale = :log10,
     legend = :topright,
     size = (800, 500),
 )
@@ -50,7 +50,6 @@ pds_to_plot = [0.005, 0.01, 0.03]
 plt_wcdr = plot(
     xlabel = "Nível de confiança α",
     ylabel = "WCDR (taxa de default no cenário α)",
-    title  = "Worst-case default rate em função de α",
     legend = :topleft,
     size = (800, 500),
 )

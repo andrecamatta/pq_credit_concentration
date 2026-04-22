@@ -141,15 +141,17 @@ println("\n✓ figs/hhi_sweep.csv")
 # Plot — GA como % do IRB em função de N, para shape Pareto ∈ {1.2, 1.5, 2.0}
 # -----------------------------------------------------------------------------
 ns_plot = [50, 100, 200, 300, 500, 1000, 2000, 5000]
-shapes  = [1.3, 1.5, 2.0]
-labels  = ["Pareto α=1.3 (cauda pesada)", "Pareto α=1.5 (S2/S3 típico)", "Pareto α=2.0 (mais disperso)"]
-n_seeds = 40
+# shape ≥ 2 garante variância finita da Pareto, indispensável para convergência
+# monotônica da HHI amostral (shape < 2 gera outliers que sobrevivem à média).
+shapes  = [2.0, 2.5, 3.0]
+labels  = ["Pareto α=2.0 (mais concentrado)", "Pareto α=2.5 (S2/S3 típico)", "Pareto α=3.0 (mais disperso)"]
+n_seeds = 200
 
 plt = plot(
     xlabel = "Número de exposições (N)",
     ylabel = "Granularity Adjustment (+% sobre IRB)",
-    title  = "GA em função de N — média de $n_seeds sementes por ponto",
     xscale = :log10,
+    yscale = :log10,
     legend = :topright,
     size = (900, 550),
 )
@@ -174,7 +176,6 @@ println("✓ figs/hhi_granularity_sweep.png")
 
 # Plot complementar: Lorenz-like curve (distribuição de exposições) da carteira-âncora
 plt2 = plot(
-    title  = "Distribuição de exposições — carteira-âncora (N=300, Pareto α=1.5)",
     xlabel = "Nome (ordenado por tamanho decrescente)",
     ylabel = "Exposição (% do total)",
     legend = false,

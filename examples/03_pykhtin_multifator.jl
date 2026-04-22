@@ -123,7 +123,7 @@ plt_conc = bar(
     ylim = (0, 1.15 * 100 * k_asrf),
 )
 hline!(plt_conc, [100 * k_asrf],
-       label = "ASRF (ρ=20% uniforme)", linestyle = :dash, color = :navy, linewidth = 2)
+       label = "ASRF (correl. uniforme 20%)", linestyle = :dash, color = :navy, linewidth = 2)
 savefig(plt_conc, joinpath(FIGDIR, "pykhtin_comparacao.png"))
 println("\n✓ figs/pykhtin_comparacao.png")
 
